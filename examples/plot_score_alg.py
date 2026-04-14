@@ -63,6 +63,7 @@ import numpy as np
 import networkx as nx
 from scipy import stats
 import pandas as pd
+from dodiscover.toporder.das import DAS
 from pywhy_graphs.viz import draw
 from dodiscover import make_context
 from dodiscover.toporder.score import SCORE
@@ -183,7 +184,7 @@ context = make_context().variables(data=data).build()
 # fully connected adjacency matrix compatible with such ordering is the upper
 # triangular matrix `np.triu(np.ones((3, 3)), k=1)` with all ones above the
 # diagonal.
-score = SCORE()  # or DAS() or NoGAM() or CAM()
+score = DAS() #SCORE()  # or DAS() or NoGAM() or CAM()
 score.learn_graph(data, context)
 
 # SCORE estimates a directed acyclic graph (DAG) and the topoological order

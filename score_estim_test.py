@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from copy import deepcopy
+from functorch import vmap, jacrev
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -167,19 +168,18 @@ def train_score_model(X_np, gd, epochs=3000, batch_size=256, lr=1e-3,
 
 def diffusion_hessian(model, gd, X_np, mu, std, t_step):
     model.eval()
-    X_norm = torch.FloatTensor((X_np - mu) / std)
-    n, d   = X_norm.shape
-    s_ab   = float(gd.sqrt_one_minus_alphas_cumprod[t_step])
-    t_vec  = torch.ones(n, dtype=torch.long) * t_step
-    H_list = []
-    for i in range(n):
-        x_i = X_norm[i:i+1].requires_grad_(True)
-        eps  = model(x_i, gd._scale_timesteps(t_vec[i:i+1]))
-        score = -eps / s_ab
-        row = [torch.autograd.grad(score[0, k], x_i, retain_graph=True)[0][0].detach().numpy()
-               for k in range(d)]
-        H_list.append(np.stack(row))
-    H_full = np.stack(H_list)
+    X_norm   = torch.FloatTensor((X_np - mu) / std)
+    n, d     = X_norm.shape
+    s_ab     = float(gd.sqrt_one_minus_alphas_cumprod[t_step])
+    t_single = torch.ones(1, dtype=torch.long) * t_step
+    t_scaled = gd._scale_timesteps(t_single)
+
+    def score_fn(x):
+        return (-model(x, t_scaled) / s_ab).squeeze(0)  # (d,)
+
+    # vmap vectorises over batch; jacrev computes full d×d Jacobian per sample
+    # input:  (n, 1, d)  →  output: (n, d, 1, d)  →  squeeze dim 2 → (n, d, d)
+    H_full = vmap(jacrev(score_fn))(X_norm.unsqueeze(1)).squeeze(2).detach().numpy()
     return np.array([H_full[:, j, j] for j in range(d)]).T, H_full
 
 

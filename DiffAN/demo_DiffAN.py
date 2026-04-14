@@ -18,6 +18,9 @@ def main():
     dataset = IIDSimulation(W=weighted_random_dag, n=num_samples, method='nonlinear', sem_type='gp')
     true_causal_matrix, X = dataset.B, dataset.X
     
+    print("Real DAG (adjacency matrix):")
+    print(true_causal_matrix)
+    breakpoint()
     print(f"Run Causal Discovery with Deciduous Residue")
     diffan = DiffAN(n_nodes, residue= True)
     adj_matrix, order = diffan.fit(X)

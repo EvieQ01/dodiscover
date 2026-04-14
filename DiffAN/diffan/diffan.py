@@ -40,7 +40,7 @@ class DiffAN():
         self.opt = torch.optim.Adam(self.model.parameters(), learning_rate)
         self.val_diffusion_loss = []
         self.best_loss = float("inf")
-        self.early_stopping_wait = 300
+        self.early_stopping_wait = 500
 
         ## Topological Ordering
         self.n_votes = 3
@@ -190,6 +190,7 @@ class DiffAN():
             jacobian_ = vmap(jacrev(model_fn_functorch))(x_batch_dropped.unsqueeze(1)).squeeze()
             jacobian.append(jacobian_[...,active_nodes].detach().cpu().numpy())
         jacobian = np.concatenate(jacobian, 0)
+        # breakpoint()
         leaf = self.get_leaf(jacobian)
         return leaf
     
